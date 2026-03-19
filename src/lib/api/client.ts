@@ -32,21 +32,57 @@ export async function apiRequest<T>(
     throw new ApiError("API URL not configured. Go to Settings to set it up.");
   }
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify({ action, ...data }),
-  });
+  // Google Apps Script Web Apps redirect POST requests (302).
+  // To avoid CORS preflight issues, we send the payload as a URL parameter
+  // via GET request, which Apps Script handles via doGet().
+  // For larger payloads we use POST with text/plain (no preflight).
+  const payload = JSON.stringify({ action, ...data });
 
-  if (!response.ok) {
-    throw new ApiError(`API request failed: ${response.statusText}`, response.status);
+  try {
+    // Try POST first (works for most deployed scripts)
+    const response = await fetch(url, {
+      method: "POST",
+      body: payload,
+      redirect: "follow",
+    });
+
+    const text = await response.text();
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch {
+      throw new ApiError("Invalid response from API: " + text.slice(0, 200));
+    }
+
+    if (result.error) {
+      throw new ApiError(result.error);
+    }
+
+    return result.data as T;
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+
+    // If POST fails due to CORS/redirect, fall back to GET with payload in URL
+    const encoded = encodeURIComponent(payload);
+    const getUrl = `${url}?payload=${encoded}`;
+
+    const response = await fetch(getUrl, {
+      method: "GET",
+      redirect: "follow",
+    });
+
+    const text = await response.text();
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch {
+      throw new ApiError("Invalid response from API: " + text.slice(0, 200));
+    }
+
+    if (result.error) {
+      throw new ApiError(result.error);
+    }
+
+    return result.data as T;
   }
-
-  const result = await response.json();
-
-  if (result.error) {
-    throw new ApiError(result.error);
-  }
-
-  return result.data as T;
 }

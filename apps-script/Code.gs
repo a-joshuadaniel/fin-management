@@ -44,6 +44,18 @@ function doPost(e) {
 }
 
 function doGet(e) {
+  // Support GET requests with payload parameter (CORS fallback)
+  if (e && e.parameter && e.parameter.payload) {
+    try {
+      var fakeEvent = {
+        postData: { contents: e.parameter.payload }
+      };
+      return doPost(fakeEvent);
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 500);
+    }
+  }
+
   return jsonResponse({
     data: { status: "ok", message: "Finance Manager API" },
   });
