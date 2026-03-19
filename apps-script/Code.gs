@@ -30,6 +30,18 @@ function doPost(e) {
       case "deleteCreditCard":
         result = deleteCreditCard(payload.id);
         break;
+      case "getLoans":
+        result = getLoans();
+        break;
+      case "createLoan":
+        result = createLoan(payload.loan);
+        break;
+      case "updateLoan":
+        result = updateLoan(payload.id, payload.loan);
+        break;
+      case "deleteLoan":
+        result = deleteLoan(payload.id);
+        break;
       case "ping":
         result = { status: "ok", timestamp: new Date().toISOString() };
         break;
@@ -210,4 +222,127 @@ function deleteCreditCard(id) {
   }
 
   throw new Error("Card not found: " + id);
+}
+
+// ==================== LOANS ====================
+
+function ensureLoansSheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName("Loans");
+
+  if (!sheet) {
+    sheet = ss.insertSheet("Loans");
+    const headers = [
+      "id", "name", "lender", "loanType",
+      "principalAmount", "outstandingAmount", "interestRate",
+      "emiAmount", "emiDay", "startDate", "endDate",
+      "totalEmis", "emisPaid", "color", "status",
+      "createdAt", "updatedAt",
+    ];
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.setFrozenRows(1);
+  }
+
+  return sheet;
+}
+
+function getLoans() {
+  const sheet = ensureLoansSheet();
+  const data = sheet.getDataRange().getValues();
+
+  if (data.length <= 1) return [];
+
+  const headers = data[0];
+  const loans = [];
+
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var loan = {};
+    headers.forEach(function (header, j) {
+      loan[header] = row[j];
+    });
+    loan.emiDay = Number(loan.emiDay);
+    loan.totalEmis = Number(loan.totalEmis);
+    loan.emisPaid = Number(loan.emisPaid);
+    loan.principalAmount = String(loan.principalAmount);
+    loan.outstandingAmount = String(loan.outstandingAmount);
+    loan.interestRate = String(loan.interestRate);
+    loan.emiAmount = String(loan.emiAmount);
+    loans.push(loan);
+  }
+
+  return loans;
+}
+
+function createLoan(loanData) {
+  const sheet = ensureLoansSheet();
+  const now = new Date().toISOString();
+  const id = Utilities.getUuid();
+
+  const row = [
+    id, loanData.name, loanData.lender, loanData.loanType,
+    loanData.principalAmount, loanData.outstandingAmount, loanData.interestRate,
+    loanData.emiAmount, loanData.emiDay, loanData.startDate, loanData.endDate,
+    loanData.totalEmis, loanData.emisPaid, loanData.color,
+    loanData.status || "active", now, now,
+  ];
+
+  sheet.appendRow(row);
+
+  return {
+    id: id, ...loanData,
+    status: loanData.status || "active",
+    createdAt: now, updatedAt: now,
+  };
+}
+
+function updateLoan(id, updates) {
+  const sheet = ensureLoansSheet();
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const idCol = headers.indexOf("id");
+
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][idCol] === id) {
+      var now = new Date().toISOString();
+
+      Object.keys(updates).forEach(function (key) {
+        var col = headers.indexOf(key);
+        if (col !== -1 && key !== "id" && key !== "createdAt") {
+          sheet.getRange(i + 1, col + 1).setValue(updates[key]);
+        }
+      });
+
+      var updatedAtCol = headers.indexOf("updatedAt");
+      sheet.getRange(i + 1, updatedAtCol + 1).setValue(now);
+
+      var updatedRow = sheet.getRange(i + 1, 1, 1, headers.length).getValues()[0];
+      var loan = {};
+      headers.forEach(function (header, j) {
+        loan[header] = updatedRow[j];
+      });
+      loan.emiDay = Number(loan.emiDay);
+      loan.totalEmis = Number(loan.totalEmis);
+      loan.emisPaid = Number(loan.emisPaid);
+      return loan;
+    }
+  }
+
+  throw new Error("Loan not found: " + id);
+}
+
+function deleteLoan(id) {
+  const sheet = ensureLoansSheet();
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const idCol = headers.indexOf("id");
+
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][idCol] === id) {
+      sheet.deleteRow(i + 1);
+      return { deleted: true };
+    }
+  }
+
+  throw new Error("Loan not found: " + id);
 }
