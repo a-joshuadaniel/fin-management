@@ -55,6 +55,7 @@ export function CardFormDialog({
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const selectedColor = watch("color");
 
   const onFormSubmit = async (data: CreditCardFormData) => {

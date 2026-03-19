@@ -1,30 +1,30 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { getApiUrl, setApiUrl, clearApiUrl, apiRequest } from "@/lib/api/client";
 import { useTheme } from "next-themes";
 import { Sun, Moon, Monitor, Check, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const subscribe = () => () => {};
+const getSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  const [url, setUrl] = useState("");
+  const mounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const [url, setUrl] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return getApiUrl() ?? "";
+  });
   const [status, setStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
   const [statusMessage, setStatusMessage] = useState("");
-
-  useEffect(() => {
-    setMounted(true);
-    const saved = getApiUrl();
-    if (saved) setUrl(saved);
-  }, []);
 
   const testConnection = async () => {
     if (!url.trim()) return;

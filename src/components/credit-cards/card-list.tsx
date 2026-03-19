@@ -3,7 +3,6 @@
 import type { CreditCard } from "@/lib/types/credit-card";
 import { CardItem } from "./card-item";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 interface CardListProps {
   cards: CreditCard[];
