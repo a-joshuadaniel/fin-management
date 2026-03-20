@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { getApiUrl, setApiUrl, clearApiUrl, apiRequest } from "@/lib/api/client";
 import { useTheme } from "next-themes";
+import { useAppSettings } from "@/lib/hooks/use-app-settings";
 import { Sun, Moon, Monitor, Check, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,12 +20,19 @@ const getServerSnapshot = () => false;
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const { settings, updateSettings } = useAppSettings();
+
   const [url, setUrl] = useState(() => {
     if (typeof window === "undefined") return "";
     return getApiUrl() ?? "";
   });
   const [status, setStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
   const [statusMessage, setStatusMessage] = useState("");
+
+  // Local state for credit card settings (save on button click)
+  const [cibilThreshold, setCibilThreshold] = useState<string>("");
+  const [dueDaysWarning, setDueDaysWarning] = useState<string>("");
+  const [emiDaysReminder, setEmiDaysReminder] = useState<string>("");
 
   const testConnection = async () => {
     if (!url.trim()) return;
@@ -47,6 +55,22 @@ export default function SettingsPage() {
       setApiUrl(url.trim());
       testConnection();
     }
+  };
+
+  const saveCreditCardSettings = () => {
+    const threshold = parseInt(cibilThreshold) || settings.creditCards.cibilWarningThreshold;
+    const dueDays = parseInt(dueDaysWarning) || settings.creditCards.daysBeforeDueWarning;
+    updateSettings({
+      creditCards: { cibilWarningThreshold: threshold, daysBeforeDueWarning: dueDays },
+    });
+    setCibilThreshold("");
+    setDueDaysWarning("");
+  };
+
+  const saveLoanSettings = () => {
+    const emiDays = parseInt(emiDaysReminder) || settings.loans.daysBeforeEmiReminder;
+    updateSettings({ loans: { daysBeforeEmiReminder: emiDays } });
+    setEmiDaysReminder("");
   };
 
   const themeOptions = [
@@ -86,6 +110,140 @@ export default function SettingsPage() {
                 })}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Display Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Display</CardTitle>
+            <CardDescription>Currency and date format preferences</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="currencyFormat">Currency Format</Label>
+                <select
+                  id="currencyFormat"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                  value={settings.display.currencyFormat}
+                  onChange={(e) =>
+                    updateSettings({
+                      display: {
+                        ...settings.display,
+                        currencyFormat: e.target.value as "full" | "compact",
+                      },
+                    })
+                  }
+                >
+                  <option value="full">Full (₹1,00,000)</option>
+                  <option value="compact">Compact (₹1L)</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateFormat">Date Format</Label>
+                <select
+                  id="dateFormat"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                  value={settings.display.dateFormat}
+                  onChange={(e) =>
+                    updateSettings({
+                      display: {
+                        ...settings.display,
+                        dateFormat: e.target.value as "dmy" | "mdy",
+                      },
+                    })
+                  }
+                >
+                  <option value="dmy">DD/MM/YYYY (Indian)</option>
+                  <option value="mdy">MM/DD/YYYY</option>
+                </select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Credit Card Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Credit Card Settings</CardTitle>
+            <CardDescription>Fine-tune alerts and thresholds for credit card tracking</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="cibilThreshold">
+                  CIBIL Warning Threshold (%)
+                </Label>
+                <Input
+                  id="cibilThreshold"
+                  type="number"
+                  min={1}
+                  max={100}
+                  placeholder={String(settings.creditCards.cibilWarningThreshold)}
+                  value={cibilThreshold}
+                  onChange={(e) => setCibilThreshold(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Current: {settings.creditCards.cibilWarningThreshold}%
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dueDaysWarning">
+                  Due Date Warning (days before)
+                </Label>
+                <Input
+                  id="dueDaysWarning"
+                  type="number"
+                  min={1}
+                  max={30}
+                  placeholder={String(settings.creditCards.daysBeforeDueWarning)}
+                  value={dueDaysWarning}
+                  onChange={(e) => setDueDaysWarning(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Current: {settings.creditCards.daysBeforeDueWarning} days
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button size="sm" onClick={saveCreditCardSettings}>
+                Save Credit Card Settings
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Loan Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Loan Settings</CardTitle>
+            <CardDescription>Configure EMI reminder preferences</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="emiReminder">
+                EMI Reminder (days before due)
+              </Label>
+              <Input
+                id="emiReminder"
+                type="number"
+                min={1}
+                max={14}
+                placeholder={String(settings.loans.daysBeforeEmiReminder)}
+                value={emiDaysReminder}
+                onChange={(e) => setEmiDaysReminder(e.target.value)}
+                className="max-w-xs"
+              />
+              <p className="text-xs text-muted-foreground">
+                Current: {settings.loans.daysBeforeEmiReminder} days
+              </p>
+            </div>
+            <div className="flex justify-end">
+              <Button size="sm" onClick={saveLoanSettings}>
+                Save Loan Settings
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

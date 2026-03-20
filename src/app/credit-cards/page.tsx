@@ -4,11 +4,10 @@ import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { CardList } from "@/components/credit-cards/card-list";
 import { CardFormDialog } from "@/components/credit-cards/card-form-dialog";
-import { TimelineView } from "@/components/credit-cards/timeline/timeline-view";
-import { CalendarView } from "@/components/credit-cards/calendar/calendar-view";
+import { CardDetailView } from "@/components/credit-cards/card-detail-view";
+import { PaymentMiniCalendar } from "@/components/credit-cards/payment-mini-calendar";
 import { AnalyticsView } from "@/components/credit-cards/analytics/analytics-view";
 import { useCreditCards } from "@/lib/hooks/use-credit-cards";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { CreditCard, Settings, Loader2, Trash2, Pencil } from "lucide-react";
@@ -102,7 +101,7 @@ export default function CreditCardsPage() {
           }}
         />
 
-        {/* Selected card details */}
+        {/* Selected card detail bar */}
         {selected && (
           <div className="flex items-center gap-4 rounded-lg border bg-card p-4">
             <div
@@ -147,23 +146,15 @@ export default function CreditCardsPage() {
           </div>
         )}
 
-        {/* Timeline / Calendar tabs */}
-        <Tabs defaultValue="timeline">
-          <TabsList>
-            <TabsTrigger value="timeline">Timeline</TabsTrigger>
-            <TabsTrigger value="calendar">Calendar</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          </TabsList>
-          <TabsContent value="timeline" className="mt-4">
-            <TimelineView cards={cards} />
-          </TabsContent>
-          <TabsContent value="calendar" className="mt-4">
-            <CalendarView cards={cards} />
-          </TabsContent>
-          <TabsContent value="analytics" className="mt-4">
-            <AnalyticsView cards={cards} />
-          </TabsContent>
-        </Tabs>
+        {/* Per-card detail OR overall analytics */}
+        {selected ? (
+          <CardDetailView card={selected} allCards={cards} />
+        ) : (
+          <AnalyticsView cards={cards} />
+        )}
+
+        {/* Payment mini-calendar — always visible */}
+        <PaymentMiniCalendar cards={cards} />
       </div>
 
       {/* Add/Edit dialog */}

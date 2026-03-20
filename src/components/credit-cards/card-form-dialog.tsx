@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { creditCardSchema, type CreditCardFormData } from "@/lib/db/schemas";
@@ -14,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DayOfMonthPicker } from "@/components/shared/day-of-month-picker";
 import { cn } from "@/lib/utils";
 
 interface CardFormDialogProps {
@@ -55,8 +57,30 @@ export function CardFormDialog({
     },
   });
 
+  // Reset form with fresh values whenever dialog opens (fixes edit persistence bug)
+  useEffect(() => {
+    if (open) {
+      reset({
+        nickname: defaultValues?.nickname ?? "",
+        bankName: defaultValues?.bankName ?? "",
+        lastFourDigits: defaultValues?.lastFourDigits ?? "",
+        network: defaultValues?.network ?? "visa",
+        billingCycleStartDay: defaultValues?.billingCycleStartDay ?? 1,
+        billingCycleEndDay: defaultValues?.billingCycleEndDay ?? 28,
+        paymentDueDay: defaultValues?.paymentDueDay ?? 15,
+        creditLimit: defaultValues?.creditLimit ?? "0",
+        currentBalance: defaultValues?.currentBalance ?? "0",
+        color: defaultValues?.color ?? CARD_COLORS[0].value,
+        status: defaultValues?.status ?? "active",
+      });
+    }
+  }, [open, defaultValues, reset]);
+
   // eslint-disable-next-line react-hooks/incompatible-library
   const selectedColor = watch("color");
+  const startDay = watch("billingCycleStartDay");
+  const endDay = watch("billingCycleEndDay");
+  const dueDay = watch("paymentDueDay");
 
   const onFormSubmit = async (data: CreditCardFormData) => {
     await onSubmit(data as CreditCardInput);
@@ -135,20 +159,16 @@ export function CardFormDialog({
             </div>
           </div>
 
-          {/* Billing Cycle */}
+          {/* Billing Cycle — Day Pickers */}
           <div className="rounded-lg border p-3 space-y-3">
             <p className="text-sm font-medium">Billing Cycle</p>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="billingCycleStartDay" className="text-xs">
-                  Start Day
-                </Label>
-                <Input
-                  id="billingCycleStartDay"
-                  type="number"
-                  min={1}
-                  max={28}
-                  {...register("billingCycleStartDay", { valueAsNumber: true })}
+                <Label className="text-xs">Cycle Start</Label>
+                <DayOfMonthPicker
+                  value={startDay}
+                  onChange={(d) => setValue("billingCycleStartDay", d)}
+                  error={errors.billingCycleStartDay?.message}
                 />
                 {errors.billingCycleStartDay && (
                   <p className="text-xs text-destructive">
@@ -157,15 +177,11 @@ export function CardFormDialog({
                 )}
               </div>
               <div className="space-y-1">
-                <Label htmlFor="billingCycleEndDay" className="text-xs">
-                  End Day
-                </Label>
-                <Input
-                  id="billingCycleEndDay"
-                  type="number"
-                  min={1}
-                  max={28}
-                  {...register("billingCycleEndDay", { valueAsNumber: true })}
+                <Label className="text-xs">Statement Date</Label>
+                <DayOfMonthPicker
+                  value={endDay}
+                  onChange={(d) => setValue("billingCycleEndDay", d)}
+                  error={errors.billingCycleEndDay?.message}
                 />
                 {errors.billingCycleEndDay && (
                   <p className="text-xs text-destructive">
@@ -174,15 +190,11 @@ export function CardFormDialog({
                 )}
               </div>
               <div className="space-y-1">
-                <Label htmlFor="paymentDueDay" className="text-xs">
-                  Pay By Day
-                </Label>
-                <Input
-                  id="paymentDueDay"
-                  type="number"
-                  min={1}
-                  max={28}
-                  {...register("paymentDueDay", { valueAsNumber: true })}
+                <Label className="text-xs">Due Date</Label>
+                <DayOfMonthPicker
+                  value={dueDay}
+                  onChange={(d) => setValue("paymentDueDay", d)}
+                  error={errors.paymentDueDay?.message}
                 />
                 {errors.paymentDueDay && (
                   <p className="text-xs text-destructive">
