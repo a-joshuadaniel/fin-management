@@ -6,6 +6,7 @@ import { CardList } from "@/components/credit-cards/card-list";
 import { CardFormDialog } from "@/components/credit-cards/card-form-dialog";
 import { TimelineView } from "@/components/credit-cards/timeline/timeline-view";
 import { CalendarView } from "@/components/credit-cards/calendar/calendar-view";
+import { AnalyticsView } from "@/components/credit-cards/analytics/analytics-view";
 import { useCreditCards } from "@/lib/hooks/use-credit-cards";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -151,12 +152,16 @@ export default function CreditCardsPage() {
           <TabsList>
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
             <TabsTrigger value="calendar">Calendar</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
           <TabsContent value="timeline" className="mt-4">
             <TimelineView cards={cards} />
           </TabsContent>
           <TabsContent value="calendar" className="mt-4">
             <CalendarView cards={cards} />
+          </TabsContent>
+          <TabsContent value="analytics" className="mt-4">
+            <AnalyticsView cards={cards} />
           </TabsContent>
         </Tabs>
       </div>
