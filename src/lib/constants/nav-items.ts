@@ -24,7 +24,7 @@ export const navItems = [
     icon: Landmark,
   },
   {
-    title: "Savings",
+    title: "Savings & Investments",
     href: "/savings",
     icon: PiggyBank,
   },
